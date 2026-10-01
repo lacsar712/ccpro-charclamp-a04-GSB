@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}雨棚停火令{% endblock %}
+{% block site_label %}雨棚停火令台账{% endblock %}
+
+{% block content %}
+<header class="timeline-head">
+  <div>
+    <h1>雨棚停火令</h1>
+    <p>同一窑场未收令时不可再挂第二条；仅管理员可挂令与收令。收令后该窑场恢复登记焖烧班次。</p>
+  </div>
+</header>
+
+<section class="ceasefire-scope">
+  <h2>拦截范围说明</h2>
+  <ul>
+    <li><strong>生效中：</strong>该窑场<strong>禁止再登记任何焖烧班次</strong>——抽屉登记表单与直打 <code>POST /shifts/new</code> 接口都会被后端拦截并返回中文说明，不是仅靠藏按钮。</li>
+    <li><strong>已有时间轴只读：</strong>停火期间不再写入新班次，既有班次照常查看。</li>
+    <li><strong>不受影响：</strong>「标记已出炭」与「改回已码窑」<strong>不受停火令约束</strong>，仍只走原有峰值规则（最近班次峰值 ≥ 400℃ 方可出炭）。</li>
+    <li><strong>收令：</strong>管理员收令时写入收令时刻与收令人，此后可正常登记班次；历史令保留可查。</li>
+  </ul>
+</section>
+
+{% if is_admin %}
+<section class="ceasefire-form card">
+  <h2>挂令</h2>
+  <form method="post" action="/ceasefires/issue" class="issue-grid">
+    <label>窑场
+      <select name="site_id" required>
+        {% for site in sites %}
+        <option value="{{ site.id }}" {% if site.id in open_site_ids %}disabled{% endif %}>
+          {{ site.name }}{% if site.id in open_site_ids %}（已有未收令）{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>生效时刻（留空＝现在）
+      <input name="effective_at" type="datetime-local" />
+    </label>
+    <label>计划收令日（可空）
+      <input name="planned_lift_date" type="date" />
+    </label>
+    <label class="span-2">降雨摘要
+      <input name="rain_summary" type="text" maxlength="400" placeholder="如：午后雷阵雨，雨棚排水告急，预计明日收令" required />
+    </label>
+    <div class="actions span-2">
+      <button type="submit">挂出停火令</button>
+    </div>
+  </form>
+</section>
+{% else %}
+<p class="hint warn card" style="padding:12px 14px;">仅管理员可挂令与收令；当前为只读视图。</p>
+{% endif %}
+
+<section class="ceasefire-lists">
+  <h2>现行停火令</h2>
+  <div class="ceasefire-cards">
+    {% for order in orders if order.is_open %}
+    <article class="ceasefire-card is-open card">
+      <header class="ceasefire-card-head">
+        <span class="rain-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M2 9 Q12 2 22 9 Z" fill="currentColor"/><path d="M7 9 V15 M12 9 V17 M17 9 V15" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+        </span>
+        <strong>{{ order.site.name }}</strong>
+        <span class="badge badge-burning">生效中</span>
+      </header>
+      <dl class="ceasefire-fields">
+        <div><dt>生效时刻</dt><dd>{{ order.effective_at.strftime('%Y-%m-%d %H:%M') }}</dd></div>
+        <div><dt>计划收令日</dt><dd>{{ order.planned_lift_date.strftime('%Y-%m-%d') if order.planned_lift_date else '—' }}</dd></div>
+        <div class="span-2"><dt>降雨摘要</dt><dd>{{ order.rain_summary }}</dd></div>
+        <div><dt>挂令人</dt><dd>{{ order.issuer.username }}</dd></div>
+        <div><dt>收令时刻</dt><dd>未收令</dd></div>
+      </dl>
+      {% if is_admin %}
+      <form method="post" action="/ceasefires/{{ order.id }}/lift" class="lift-form">
+        <button type="submit" class="btn">收令</button>
+      </form>
+      {% endif %}
+    </article>
+    {% else %}
+    <p class="hint">当前无现行停火令。</p>
+    {% endfor %}
+  </div>
+
+  <h2>历史停火令（已收令）</h2>
+  <div class="ceasefire-cards">
+    {% for order in orders if not order.is_open %}
+    <article class="ceasefire-card is-closed card">
+      <header class="ceasefire-card-head">
+        <strong>{{ order.site.name }}</strong>
+        <span class="badge badge-drawn">已收令</span>
+      </header>
+      <dl class="ceasefire-fields">
+        <div><dt>生效时刻</dt><dd>{{ order.effective_at.strftime('%Y-%m-%d %H:%M') }}</dd></div>
+        <div><dt>收令时刻</dt><dd>{{ order.lifted_at.strftime('%Y-%m-%d %H:%M') if order.lifted_at else '—' }}</dd></div>
+        <div class="span-2"><dt>降雨摘要</dt><dd>{{ order.rain_summary }}</dd></div>
+        <div><dt>挂令人</dt><dd>{{ order.issuer.username }}</dd></div>
+        <div><dt>收令人</dt><dd>{{ order.lifter.username if order.lifter else '—' }}</dd></div>
+      </dl>
+    </article>
+    {% else %}
+    <p class="hint">暂无已收令记录。</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

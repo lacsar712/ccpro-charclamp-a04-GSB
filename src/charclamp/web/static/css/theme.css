@@ -81,6 +81,156 @@ body {
 
 .link-quiet:hover { color: var(--ink); }
 
+/* —— topbar nav —— */
+.topbar-nav {
+  display: flex;
+  gap: 14px;
+  margin-left: 8px;
+}
+
+.nav-link {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 4px 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.nav-link:hover { color: var(--ink); }
+
+/* —— rain-shelter ceasefire —— */
+.rain-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #7dd3fc;
+}
+
+.rain-badge em {
+  font-style: normal;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #7dd3fc;
+}
+
+.kiln-chip.has-ceasefire {
+  border-color: rgba(125, 211, 252, 0.55);
+  background: linear-gradient(165deg, #16202a, #10181f);
+  position: relative;
+}
+
+.kiln-chip.has-ceasefire .rain-badge {
+  position: absolute;
+  top: -8px;
+  left: -6px;
+  background: #0c2230;
+  border: 1px solid rgba(125, 211, 252, 0.5);
+  border-radius: 999px;
+  padding: 2px 6px;
+}
+
+.ceasefire-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 4px 0 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(125, 211, 252, 0.45);
+  border-radius: 12px;
+  background: linear-gradient(165deg, #10222e, #0d1820);
+}
+
+.ceasefire-banner strong { color: #bae6fd; }
+.ceasefire-banner p {
+  margin: 4px 0 0;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+
+.banner-action { margin-left: auto; flex-shrink: 0; }
+
+.ceasefire-drawer-notice {
+  padding: 10px 12px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-radius: 8px;
+  background: #2a1412;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.ceasefire-scope {
+  background: #15120d;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ember);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.ceasefire-scope h2 { margin: 0 0 8px; font-size: 1.05rem; }
+.ceasefire-scope ul { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
+.ceasefire-scope li { color: #cbbba6; font-size: 0.9rem; }
+.ceasefire-scope code {
+  background: #0c0a08;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.85em;
+}
+
+.ceasefire-form { margin-bottom: 22px; }
+.ceasefire-form h2 { margin: 0 0 12px; font-size: 1.05rem; }
+
+.issue-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.issue-grid .span-2 { grid-column: span 2; }
+
+.ceasefire-lists { display: grid; gap: 10px; }
+.ceasefire-lists > h2 { margin: 8px 0 4px; font-size: 1.05rem; }
+
+.ceasefire-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.ceasefire-card.is-open { border-color: rgba(125, 211, 252, 0.4); }
+.ceasefire-card.is-closed { opacity: 0.75; }
+
+.ceasefire-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ceasefire-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+  margin: 0;
+}
+
+.ceasefire-fields .span-2 { grid-column: span 2; }
+.ceasefire-fields dt {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0;
+}
+.ceasefire-fields dd { margin: 2px 0 0; font-size: 0.92rem; }
+
+.lift-form { margin-top: 12px; }
+
 .stage { padding-top: 20px; }
 
 /* —— kiln silhouette row —— */
@@ -461,4 +611,7 @@ input, select, textarea {
 @media (max-width: 640px) {
   .timeline-head { flex-direction: column; align-items: stretch; }
   .kiln-chip { min-width: 132px; }
+  .issue-grid { grid-template-columns: 1fr; }
+  .issue-grid .span-2 { grid-column: span 1; }
+  .topbar-nav { gap: 10px; }
 }

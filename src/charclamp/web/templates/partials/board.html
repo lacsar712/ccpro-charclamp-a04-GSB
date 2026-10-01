@@ -16,15 +16,25 @@
     </span>
   </a>
   {% for clamp in clamps %}
+  {% set open_order = open_by_site.get(clamp.site_id) if open_by_site else none %}
   <a
-    class="kiln-chip status-{{ clamp.status }} {% if active_clamp_id == clamp.id %}is-active{% endif %}"
+    class="kiln-chip status-{{ clamp.status }} {% if open_order %}has-ceasefire{% endif %} {% if active_clamp_id == clamp.id %}is-active{% endif %}"
     href="/?clamp_id={{ clamp.id }}"
     hx-get="/timeline/partial?clamp_id={{ clamp.id }}"
     hx-target="#board"
     hx-swap="innerHTML"
     hx-push-url="/?clamp_id={{ clamp.id }}"
-    title="{{ status_labels.get(clamp.status, clamp.status) }}"
+    title="{% if open_order %}雨棚停火令生效中 · {% endif %}{{ status_labels.get(clamp.status, clamp.status) }}"
   >
+    {% if open_order %}
+    <span class="rain-badge" aria-label="雨棚停火令生效中" title="雨棚停火令生效中：{{ open_order.rain_summary }}">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+        <path d="M2 9 Q12 2 22 9 Z" fill="currentColor"/>
+        <path d="M7 9 V15 M12 9 V17 M17 9 V15" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      </svg>
+      <em>雨棚</em>
+    </span>
+    {% endif %}
     <span class="kiln-svg" aria-hidden="true">
       <svg viewBox="0 0 48 56" width="44" height="50">
         <path class="kiln-body" d="M10 50 L15 22 Q24 8 33 22 L38 50 Z" />
@@ -35,11 +45,36 @@
     </span>
     <span class="kiln-meta">
       <strong>{{ clamp.code }}</strong>
-      <em>{{ status_labels.get(clamp.status, clamp.status) }} · {{ clamp.wood_species or '—' }}</em>
+      <em>{% if open_order %}雨棚停火中{% else %}{{ status_labels.get(clamp.status, clamp.status) }}{% endif %} · {{ clamp.wood_species or '—' }}</em>
     </span>
   </a>
   {% endfor %}
 </section>
+
+{% set ns = namespace(order=none) %}
+{% if open_by_site %}
+  {% if active_clamp_id %}
+    {% for clamp in clamps %}{% if clamp.id == active_clamp_id %}{% set ns.order = open_by_site.get(clamp.site_id) %}{% endif %}{% endfor %}
+  {% elif clamps %}
+    {% set ns.order = open_by_site.get(clamps[0].site_id) %}
+  {% endif %}
+{% endif %}
+{% if ns.order %}
+<section class="ceasefire-banner" role="status">
+  <span class="rain-badge" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M2 9 Q12 2 22 9 Z" fill="currentColor"/><path d="M7 9 V15 M12 9 V17 M17 9 V15" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+  </span>
+  <div>
+    <strong>雨棚停火令生效中</strong>
+    <p>自 {{ ns.order.effective_at.strftime('%Y-%m-%d %H:%M') }} 起，禁止再登记任何焖烧班次，已有时间轴只读；出炭与改回已码窑不受影响。降雨摘要：{{ ns.order.rain_summary }}</p>
+  </div>
+  {% if user and user.role == 'admin' %}
+  <form method="post" action="/ceasefires/{{ ns.order.id }}/lift" class="banner-action">
+    <button type="submit" class="btn ghost">收令</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
 
 <header class="timeline-head">
   <div>

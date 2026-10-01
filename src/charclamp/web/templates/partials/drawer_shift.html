@@ -3,14 +3,31 @@
     <h2>登记焖烧班次</h2>
     <button type="button" class="icon-close" onclick="closeDrawer()" aria-label="关闭">×</button>
   </header>
-  <form class="drawer-body" method="post" action="/shifts/new">
+  {% set blocked_site_ids = open_by_site.keys()|list if open_by_site else [] %}
+  <form
+    class="drawer-body"
+    method="post"
+    action="/shifts/new"
+    id="shift-new-form"
+    data-blocked-sites="{{ blocked_site_ids | join(',') }}"
+  >
     <label>炭窑
-      <select name="clamp_id" required>
+      <select name="clamp_id" id="shift-clamp-select" required>
         {% for clamp in clamps %}
-        <option value="{{ clamp.id }}" {% if preselect_clamp_id == clamp.id %}selected{% endif %}>{{ clamp.code }}</option>
+        <option
+          value="{{ clamp.id }}"
+          data-site-id="{{ clamp.site_id }}"
+          {% if preselect_clamp_id == clamp.id %}selected{% endif %}
+        >{{ clamp.code }}{% if clamp.site_id in blocked_site_ids %}（雨棚停火中）{% endif %}</option>
         {% endfor %}
       </select>
     </label>
+
+    <p class="ceasefire-drawer-notice hint warn" id="shift-ceasefire-notice" hidden>
+      雨棚停火：该窑场停火令生效中，禁止再登记任何焖烧班次，已有时间轴只读；请等待管理员收令。
+      （出炭与改回已码窑不受停火令影响，仍可在窑操作抽屉进行）
+    </p>
+
     <label>开始时间
       <input name="started_at" type="datetime-local" />
     </label>
@@ -25,8 +42,28 @@
     </label>
     <p class="hint">出炭要求最近班次峰值 ≥ 400℃；本表只登记班次。</p>
     <div class="actions">
-      <button type="submit">写入时间轴</button>
+      <button type="submit" id="shift-submit-btn">写入时间轴</button>
       <button type="button" class="btn ghost" onclick="closeDrawer()">取消</button>
     </div>
   </form>
+  <script>
+    (function () {
+      var form = document.getElementById('shift-new-form');
+      var sel = document.getElementById('shift-clamp-select');
+      var notice = document.getElementById('shift-ceasefire-notice');
+      var btn = document.getElementById('shift-submit-btn');
+      var blocked = (form.getAttribute('data-blocked-sites') || '')
+        .split(',').filter(Boolean).map(Number);
+      function refresh() {
+        var opt = sel.options[sel.selectedIndex];
+        var siteId = opt ? Number(opt.getAttribute('data-site-id')) : NaN;
+        var isBlocked = blocked.indexOf(siteId) !== -1;
+        notice.hidden = !isBlocked;
+        btn.disabled = isBlocked;
+        btn.classList.toggle('is-disabled', isBlocked);
+      }
+      sel.addEventListener('change', refresh);
+      refresh();
+    })();
+  </script>
 </aside>

@@ -12,14 +12,29 @@
     <p class="hint">{{ clamp.notes }}</p>
     {% endif %}
 
+    {% if ceasefire %}
+    <section class="ceasefire-drawer-notice" role="status">
+      <p class="hint warn" style="margin:0">
+        雨棚停火令生效中（自 {{ ceasefire.effective_at.strftime('%Y-%m-%d %H:%M') }} 起）：
+        本窑禁止再登记焖烧班次，已有时间轴只读。<br />
+        出炭与改回已码窑<strong>不受停火令影响</strong>，下方操作仍可正常进行。
+      </p>
+    </section>
+    {% endif %}
+
     <div class="drawer-actions-stack">
       <button
         type="button"
-        class="btn"
+        class="btn {% if ceasefire %}is-disabled{% endif %}"
+        {% if ceasefire %}disabled aria-disabled="true"{% else %}
         hx-get="/drawer/shift-new?clamp_id={{ clamp.id }}"
         hx-target="#drawer-root"
         hx-swap="innerHTML"
+        {% endif %}
       >为本窑登记班次</button>
+      {% if ceasefire %}
+      <p class="hint warn">登记入口因雨棚停火暂停；后端同样强制拦截，收令后自动恢复。</p>
+      {% endif %}
 
       {% if clamp.status != 'drawn' %}
       <form method="post" action="/clamps/{{ clamp.id }}/status">
