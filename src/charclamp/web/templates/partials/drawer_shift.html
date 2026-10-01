@@ -3,14 +3,36 @@
     <h2>登记焖烧班次</h2>
     <button type="button" class="icon-close" onclick="closeDrawer()" aria-label="关闭">×</button>
   </header>
-  <form class="drawer-body" method="post" action="/shifts/new">
+
+  {% if blocked_site_ids %}
+  <div class="ceasefire-note" role="alert">
+    <p class="ceasefire-note-title">雨棚停火令生效中</p>
+    {% for order in ceasefire_by_site.values() %}
+    <p class="ceasefire-note-body">
+      「{{ order.site.name }}」自 {{ order.effective_at.strftime('%Y-%m-%d %H:%M') }}
+      起执行雨棚停火（计划收令日 {{ order.planned_lift_date.strftime('%Y-%m-%d') }}）：
+      <strong>禁止再登记任何焖烧班次，已有时间轴只读</strong>。
+      出炭与改回已码窑不受停火令影响，仍可在窑操作抽屉办理；恢复登记请等管理员收令。
+    </p>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form class="drawer-body" method="post" action="/shifts/new" id="shift-new-form">
     <label>炭窑
-      <select name="clamp_id" required>
+      <select name="clamp_id" required id="shift-clamp-select" onchange="updateShiftCeasefire()">
         {% for clamp in clamps %}
-        <option value="{{ clamp.id }}" {% if preselect_clamp_id == clamp.id %}selected{% endif %}>{{ clamp.code }}</option>
+        {% set blocked = clamp.site_id in blocked_site_ids %}
+        <option
+          value="{{ clamp.id }}"
+          data-site-id="{{ clamp.site_id }}"
+          data-blocked="{{ '1' if blocked else '0' }}"
+          {% if preselect_clamp_id == clamp.id %}selected{% endif %}
+        >{{ clamp.code }}{% if blocked %}（雨棚停火中，不可登记）{% endif %}</option>
         {% endfor %}
       </select>
     </label>
+    <p class="hint warn" id="shift-ceasefire-msg" hidden></p>
     <label>开始时间
       <input name="started_at" type="datetime-local" />
     </label>
@@ -25,8 +47,34 @@
     </label>
     <p class="hint">出炭要求最近班次峰值 ≥ 400℃；本表只登记班次。</p>
     <div class="actions">
-      <button type="submit">写入时间轴</button>
+      <button type="submit" id="shift-submit-btn">写入时间轴</button>
       <button type="button" class="btn ghost" onclick="closeDrawer()">取消</button>
     </div>
   </form>
+
+  <script>
+    var SHIFT_CEASEFIRE_REASONS = {
+      {% for site_id, order in ceasefire_by_site.items() %}
+      "{{ site_id }}": "雨棚停火：该窑场停火令生效中（{{ order.effective_at.strftime('%Y-%m-%d %H:%M') }} 起挂），禁止再登记任何焖烧班次，时间轴只读；请等管理员收令后再登记。",
+      {% endfor %}
+    };
+    function updateShiftCeasefire() {
+      var sel = document.getElementById('shift-clamp-select');
+      var opt = sel.options[sel.selectedIndex];
+      var blocked = opt && opt.getAttribute('data-blocked') === '1';
+      var btn = document.getElementById('shift-submit-btn');
+      var msg = document.getElementById('shift-ceasefire-msg');
+      btn.disabled = blocked;
+      btn.classList.toggle('is-disabled', blocked);
+      if (blocked) {
+        msg.hidden = false;
+        msg.textContent = SHIFT_CEASEFIRE_REASONS[opt.getAttribute('data-site-id')]
+          || "雨棚停火令生效中，该炭窑不可登记新班次。";
+      } else {
+        msg.hidden = true;
+        msg.textContent = "";
+      }
+    }
+    updateShiftCeasefire();
+  </script>
 </aside>

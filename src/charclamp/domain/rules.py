@@ -17,6 +17,17 @@ def latest_shift_for_clamp(clamp: Clamp) -> BurnShift | None:
     return max(clamp.shifts, key=lambda s: s.started_at)
 
 
+def assert_not_in_ceasefire(open_orders: list, site_name: str = "") -> None:
+    """雨棚停火令生效时禁止登记新的焖烧班次（出炭 / 改回已码窑不走此校验）。"""
+    if open_orders:
+        where = f"「{site_name}」" if site_name else "该窑场"
+        latest = max(open_orders, key=lambda o: o.effective_at)
+        raise RuleError(
+            f"雨棚停火：{where}停火令生效中（{latest.effective_at:%Y-%m-%d %H:%M} 起挂），"
+            "禁止再登记任何焖烧班次，已有时间轴只读；请等管理员收令后再登记。"
+        )
+
+
 def can_mark_clamp_drawn(clamp: Clamp) -> tuple[bool, str]:
     """
     炭窑转为「已出炭」(drawn) 的前提：

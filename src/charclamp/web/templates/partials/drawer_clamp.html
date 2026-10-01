@@ -12,6 +12,20 @@
     <p class="hint">{{ clamp.notes }}</p>
     {% endif %}
 
+    {% if ceasefire_order %}
+    <div class="ceasefire-note" role="alert">
+      <p class="ceasefire-note-title">雨棚停火令生效中</p>
+      <p class="ceasefire-note-body">
+        本窑场自 {{ ceasefire_order.effective_at.strftime('%Y-%m-%d %H:%M') }} 起挂令
+        （计划收令日 {{ ceasefire_order.planned_lift_date.strftime('%Y-%m-%d') }}，
+        挂令人 {{ ceasefire_order.issuer.username }}）：
+        <strong>禁止再登记任何焖烧班次，已有时间轴只读</strong>。
+        「为本窑登记班次」暂不可写入，直打保存也会被拦下；
+        出炭与改回已码窑不受停火令影响，下方按钮仍按原峰值规则办理。
+      </p>
+    </div>
+    {% endif %}
+
     <div class="drawer-actions-stack">
       <button
         type="button"

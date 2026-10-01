@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}雨棚停火令{% endblock %}
+{% block site_label %}雨棚停火令{% endblock %}
+
+{% block content %}
+<section class="ceasefire-page">
+  <header class="timeline-head">
+    <div>
+      <h1>雨棚停火令</h1>
+      <p>
+        停火令生效期间，该窑场<strong>禁止再登记任何焖烧班次，已有时间轴只读</strong>；
+        出炭与改回已码窑不受停火令影响，仍按原峰值规则办理。
+        同一窑场未收令时不可再挂第二条；挂令与收令<strong>仅管理员</strong>可操作。
+      </p>
+    </div>
+  </header>
+
+  <h2 class="section-title">现行停火令</h2>
+  {% if active_orders %}
+  <div class="order-grid">
+    {% for order in active_orders %}
+    <article class="order-card order-active">
+      <header class="order-card-head">
+        <span class="canopy-mark canopy-mark-lg" aria-hidden="true">
+          <svg viewBox="0 0 32 20" width="28" height="18"><path d="M2 14 Q16 2 30 14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M2 14 L30 14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M9 14 v4 M23 14 v4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </span>
+        <div>
+          <strong class="order-site">{{ order.site.name }}</strong>
+          <span class="badge badge-ceasefire">生效中</span>
+        </div>
+      </header>
+      <dl class="order-fields">
+        <div><dt>生效时刻</dt><dd>{{ order.effective_at.strftime('%Y-%m-%d %H:%M') }}</dd></div>
+        <div><dt>计划收令日</dt><dd>{{ order.planned_lift_date.strftime('%Y-%m-%d') }}</dd></div>
+        <div><dt>降雨摘要</dt><dd>{{ order.rain_summary }}</dd></div>
+        <div><dt>挂令人</dt><dd>{{ order.issuer.username }}</dd></div>
+        <div><dt>收令时刻</dt><dd class="muted">未收令</dd></div>
+      </dl>
+      {% if is_admin %}
+      <form method="post" action="/ceasefire/{{ order.id }}/lift" class="order-lift-form"
+            onsubmit="return confirm('确认收令？收令后该窑场可恢复登记焖烧班次。');">
+        <button type="submit" class="btn">收令（写入收令时刻）</button>
+      </form>
+      {% else %}
+      <p class="hint">仅管理员可收令。</p>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="timeline-empty">当前没有生效中的雨棚停火令，各窑场可正常登记焖烧班次。</p>
+  {% endif %}
+
+  {% if is_admin %}
+  <h2 class="section-title">挂令</h2>
+  <form class="order-form" method="post" action="/ceasefire/issue">
+    <label>窑场
+      <select name="site_id" required>
+        {% for site in sites %}
+        <option value="{{ site.id }}" {% if site.id in active_site_ids %}disabled{% endif %}>
+          {{ site.name }}{% if site.id in active_site_ids %}（已有未收令，不可再挂）{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="form-row">
+      <label>生效时刻（留空取当前）
+        <input name="effective_at" type="datetime-local" />
+      </label>
+      <label>计划收令日
+        <input name="planned_lift_date" type="date" required />
+      </label>
+    </div>
+    <label>降雨摘要
+      <textarea name="rain_summary" rows="2" required placeholder="如：午后雷阵雨，棚区累计 25mm，入夜未止"></textarea>
+    </label>
+    <div class="actions">
+      <button type="submit">挂雨棚停火令</button>
+      <p class="hint">挂令人自动记为 {{ user.username }}；同一窑场未收令时重复挂令会被后端拒绝（并发也只落一条）。</p>
+    </div>
+  </form>
+  {% else %}
+  <p class="hint nonadmin-note">当前账号 {{ user.username }} 不是管理员，仅可查看；挂令与收令请使用管理员账号。</p>
+  {% endif %}
+
+  {% if history_orders %}
+  <h2 class="section-title">近期已收令记录</h2>
+  <table class="order-table">
+    <thead>
+      <tr><th>窑场</th><th>生效时刻</th><th>计划收令日</th><th>降雨摘要</th><th>挂令人</th><th>收令时刻</th><th>收令人</th></tr>
+    </thead>
+    <tbody>
+      {% for order in history_orders %}
+      <tr>
+        <td>{{ order.site.name }}</td>
+        <td>{{ order.effective_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ order.planned_lift_date.strftime('%Y-%m-%d') }}</td>
+        <td>{{ order.rain_summary }}</td>
+        <td>{{ order.issuer.username }}</td>
+        <td>{{ order.lifted_at.strftime('%Y-%m-%d %H:%M') if order.lifted_at else '—' }}</td>
+        <td>{{ order.lifter.username if order.lifter else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <section class="scope-note">
+    <h2 class="section-title">停火令拦截范围说明</h2>
+    <ul>
+      <li><strong>拦截：</strong>抽屉「登记班次」与直打 <code>POST /shifts/new</code> 保存接口——停火令生效中的窑场一律拒绝写入新焖烧班次，并返回中文说明，不依赖前端藏按钮。</li>
+      <li><strong>只读：</strong>已有焖烧班次时间轴在停火期间保持只读展示。</li>
+      <li><strong>不拦截：</strong>「标记已出炭」（仍要求最近班次峰值 ≥ 400℃）与「重置为已码窑」，仍走原峰值规则。</li>
+      <li><strong>唯一性：</strong>同一窑场存在未收令时不可挂第二条，数据库部分唯一索引兜底并发挂令，两名管理员同时操作只落一条。</li>
+      <li><strong>权限：</strong>挂令 <code>POST /ceasefire/issue</code> 与收令 <code>POST /ceasefire/{id}/lift</code> 仅管理员可用；非管理员调用不产生任何写入。</li>
+    </ul>
+  </section>
+</section>
+{% endblock %}

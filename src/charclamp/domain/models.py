@@ -1,8 +1,19 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -32,6 +43,10 @@ class Site(Base):
     notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
 
     clamps: Mapped[list[Clamp]] = relationship(back_populates="site", cascade="all, delete-orphan")
+    ceasefire_orders: Mapped[list[CeasefireOrder]] = relationship(
+        back_populates="site",
+        cascade="all, delete-orphan",
+    )
 
 
 class Clamp(Base):
@@ -67,3 +82,33 @@ class BurnShift(Base):
     notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
 
     clamp: Mapped[Clamp] = relationship(back_populates="shifts")
+
+
+class CeasefireOrder(Base):
+    """雨棚停火令：同一窑场同时只允许一条未收令（lifted_at IS NULL）。"""
+
+    __tablename__ = "ceasefire_orders"
+    __table_args__ = (
+        Index(
+            "uq_ceasefire_open_per_site",
+            "site_id",
+            unique=True,
+            postgresql_where=text("lifted_at IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    site_id: Mapped[int] = mapped_column(ForeignKey("sites.id"), nullable=False)
+    effective_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    planned_lift_date: Mapped[date] = mapped_column(Date, nullable=False)
+    rain_summary: Mapped[str] = mapped_column(String(200), nullable=False)
+    issued_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    lifted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    lifted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    site: Mapped[Site] = relationship(
+        back_populates="ceasefire_orders",
+        foreign_keys=[site_id],
+    )
+    issuer: Mapped[User] = relationship(foreign_keys=[issued_by])
+    lifter: Mapped[User | None] = relationship(foreign_keys=[lifted_by])

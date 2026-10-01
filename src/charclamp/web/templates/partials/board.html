@@ -1,3 +1,21 @@
+{% if banner_orders %}
+<section class="ceasefire-banner" aria-label="雨棚停火通知">
+  <span class="canopy-mark" aria-hidden="true">
+    <svg viewBox="0 0 32 20" width="30" height="18"><path d="M2 14 Q16 2 30 14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M2 14 L30 14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M9 14 v4 M23 14 v4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+  </span>
+  <div class="ceasefire-banner-text">
+    {% for order in banner_orders %}
+    <p><strong>雨棚停火令生效中 · {{ order.site.name }}</strong>
+      自 {{ order.effective_at.strftime('%Y-%m-%d %H:%M') }} 起挂，计划收令日
+      {{ order.planned_lift_date.strftime('%Y-%m-%d') }}；{{ order.rain_summary }}
+      ——本窑场<strong>禁止再登记任何焖烧班次，已有时间轴只读</strong>。
+      出炭与改回已码窑不受停火令影响。{% if not is_admin %}收令请联系管理员。{% endif %}
+    </p>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <section class="kiln-row" aria-label="炭窑筛选">
   <a
     class="kiln-chip {% if not active_clamp_id %}is-active{% endif %}"
@@ -16,15 +34,22 @@
     </span>
   </a>
   {% for clamp in clamps %}
+  {% set open_order = ceasefire_by_site.get(clamp.site_id) %}
   <a
-    class="kiln-chip status-{{ clamp.status }} {% if active_clamp_id == clamp.id %}is-active{% endif %}"
+    class="kiln-chip status-{{ clamp.status }} {% if active_clamp_id == clamp.id %}is-active{% endif %} {% if open_order %}under-ceasefire{% endif %}"
     href="/?clamp_id={{ clamp.id }}"
     hx-get="/timeline/partial?clamp_id={{ clamp.id }}"
     hx-target="#board"
     hx-swap="innerHTML"
     hx-push-url="/?clamp_id={{ clamp.id }}"
-    title="{{ status_labels.get(clamp.status, clamp.status) }}"
+    title="{{ status_labels.get(clamp.status, clamp.status) }}{% if open_order %} · 雨棚停火令生效中{% endif %}"
   >
+    {% if open_order %}
+    <span class="canopy-badge" title="雨棚停火令生效中" aria-label="雨棚停火令生效中">
+      <svg viewBox="0 0 32 20" width="26" height="16"><path d="M2 14 Q16 2 30 14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M2 14 L30 14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M9 14 v4 M23 14 v4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <em>停火</em>
+    </span>
+    {% endif %}
     <span class="kiln-svg" aria-hidden="true">
       <svg viewBox="0 0 48 56" width="44" height="50">
         <path class="kiln-body" d="M10 50 L15 22 Q24 8 33 22 L38 50 Z" />

@@ -18,6 +18,12 @@
         </div>
       </div>
       <div class="topbar-actions">
+        {% if user %}
+        <nav class="topnav" aria-label="主导航">
+          <a class="topnav-link" href="/">焖烧时间轴</a>
+          <a class="topnav-link" href="/ceasefire">雨棚停火令</a>
+        </nav>
+        {% endif %}
         {% block top_actions %}{% endblock %}
         {% if user %}
         <a class="link-quiet" href="/logout">退出 {{ user.username }}</a>
